@@ -1,0 +1,51 @@
+---
+AWSTemplateFormatVersion: "2010-09-09"
+
+Description: >-
+  VPC Example with subnets
+
+Parameters:
+  CIDR:
+    Type: String
+    Description: >-
+      Block CIDR pour le VPC
+  Environment:
+    Type: String
+    Description: >-
+      Nom d'environement
+
+Resources:
+  rootVpc:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Ref CIDR
+      EnableDnsSupport: True
+      EnableDnsHostnames: True
+      Tags:
+        - Key: "Name"
+          Value:
+            Fn::Join:
+              - "-"
+              - - "VPC"
+                - !Ref Environement
+        - Key: "Env"
+          Value: !Ref Environement
+
+  publicSubnetA:
+    Type: "AWS::EC2::Subnet"
+    Properties:
+      AvailabilityZone:
+        Fn::Join:
+          - ""
+          - - !Ref AWS::Region
+            - "a"
+      CidrBlock: String
+      MapPublicIpOnLaunch: Boolean
+      Tags:
+        Resource Tag
+      VpcId: !Ref rootVpc
+
+Outputs:
+  ASG:
+    Description: AutoScaling Group
+    Value: !Ref asgTest

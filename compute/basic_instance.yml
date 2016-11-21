@@ -2,7 +2,7 @@
 AWSTemplateFormatVersion: "2010-09-09"
 
 Description: >-
-  A sample template for AutoScaling Launch Configuration and Scaling Group
+  A sample template with an Instance
 
 Parameters:
   KeyName:
@@ -13,19 +13,39 @@ Parameters:
     Type: AWS::EC2::Image::Id
     Default: ami-9398d3e0
 
+  ApplicationName:
+    Type: String
+    Default: "Test"
+
+  NTPServer:
+    Type: String
+    Default: "0.europe.pool.ntp.org"
+  VPCName:
+    Type: String
+    AllowedValues:
+    - "Prod"
+    - "Dev"
+    Default: "Dev"
+
+  InstanceType:
+    Type: String
+    Default: t2.micro
+
+Mappings:
+  applications:
+    Test:
+      iamRoleName: "role"
+
 Resources:
-  asgLcTest:
-    Type: "AWS::AutoScaling::LaunchConfiguration"
+  ec2Test:
+    Type: "AWS::EC2::Instance"
     Properties:
       EbsOptimized: False
       KeyName: !Ref KeyName
       ImageId: !Ref ImageId
-      InstanceType: g2.2xlarge
-      InstanceMonitoring: False
-      AssociatePublicIpAddress: True
+      InstanceType: !Ref InstanceType
       SecurityGroups:
         - "sg-cb5153ac"
-      SpotPrice: "0.5"
       UserData:
         Fn::Base64:
           Fn::Join:
@@ -51,39 +71,8 @@ Resources:
                 - !Ref VPCName
             - " || error_exit 'Failed to run /opt/aws/bin/cfn-init'\n"
 
-  asgTest:
-    Type: "AWS::AutoScaling::AutoScalingGroup"
-    DependsOn: asgLcTest
-    Properties:
-      AvailabilityZones: !GetAZs AWS::Region
-      Cooldown: "300"
-      HealthCheckGracePeriod: 300
-      HealthCheckType: "EC2"
-      LaunchConfigurationName: !Ref asgLcTest
-      LoadBalancerNames: []
-      MinSize: "0"
-      MaxSize: "2"
-      DesiredCapacity: "0"
-      MetricsCollection:
-        - Granularity: "1Minute"
-          Metrics:
-            - "GroupMinSize"
-            - "GroupMaxSize"
-      Tags:
-        - Key: "Name"
-          Value: "Demo"
-          PropagateAtLaunch: True
-        - Key: "Env"
-          Value: "Dev"
-          PropagateAtLaunch: True
-      TerminationPolicies:
-        - "ClosestToNextInstanceHour"
-      VPCZoneIdentifier:
-        - "subnet-cb822a93"
-        - "subnet-b8bed0dc"
-        - "subnet-9b60fbed"
-
 Outputs:
   ASG:
     Description: AutoScaling Group
-    Value: !Ref asgTest
+    Value: !Ref ec2Test
+

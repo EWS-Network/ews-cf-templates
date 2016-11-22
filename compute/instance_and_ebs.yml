@@ -60,6 +60,8 @@ Resources:
               command: "echo /dev/mapper/vg01-data /var/lib/data xfs defaults 0 0 >> /etc/fstab"
             0010-mount-all:
               command: "mount -a"
+            0011-set-lvm-flag:
+              command: "parted -s -- /dev/xvdz set 1 lvm on ; parted -s -- /dev/xvdx set 1 lvm on"
 
     Properties:
       IamInstanceProfile: !Ref iamInstanceProfile

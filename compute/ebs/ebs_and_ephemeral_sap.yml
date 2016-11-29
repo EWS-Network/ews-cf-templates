@@ -95,20 +95,23 @@ Resources:
     Type: "AWS::EC2::Instance"
     Metadata:
       AWS::CloudFormation::Init:
+
         packagesInstall:
           packages:
             yum:
               lvm2: []
               parted: []
               xfsprogs: []
-        partition:
+
+        partitionDisks:
           commands:
             0001-part-disk1:
-              command: "while true ; do if [ `fdisk -l | grep xvdz | wc -l` -gt 0 ]; then parted -a optimal -s -- /dev/xvdz mklabel msdos mkpart primary 0% 100%; exit 0;  fi ; done"
+              command: "bash /var/tmp/waitForFormat.sh xvdz"
             0002-part-disk2:
-              command: "while true ; do if [ `fdisk -l | grep xvdx | wc -l` -gt 0 ]; then parted -a optimal -s -- /dev/xvdx mklabel msdos mkpart primary 0% 100%; exit 0;  fi ; done"
+              command: "bash /var/tmp/waitForFormat.sh xvdz"
             0003-set-lvm-flag:
               command: "parted -s -- /dev/xvdz set 1 lvm on ; parted -s -- /dev/xvdx set 1 lvm on"
+
         lvmconfig:
           commands:
             0001-pv-disk1:
@@ -135,43 +138,19 @@ Resources:
             0002-mount-all:
               command: "mount -a"
 
-        swapScript:
+        disksScripts:
           files:
             "/var/tmp/swapOn.sh":
               owner: root
               group: root
               mode: 755
-              content:
-                Fn::Join:
-                  - "\n"
-                  - - "#!/usr/bin/env bash"
-                    - "# Script to put disk / partition to swap pool"
-                    - ""
-                    - "if ! [ \"$#\" -eq 1 ]; then"
-                    - " echo No disk specified"
-                    - " exit 1"
-                    - "fi"
-                    - ""
-                    - "while true ; do"
-                    - " if [ `fdisk -l | grep $1 | wc -l` -gt 0 ]; then"
-                    - "   parted -a optimal -s -- /dev/$1 mklabel gpt mkpart primary 0% 100%;"
-                    - "   break"
-                    - " fi"
-                    - " sleep 5"
-                    - " echo Disk $1 not yet found on the system"
-                    - "done"
-                    - ""
-                    - "function turnOnSwap"
-                    - "{"
-                    - "mkswap /dev/\"$1\"1"
-                    - "swapon /dev/\"$1\"1"
-                    - "}"
-                    - ""
-                    - "echo Swapping on !"
-                    - "turnOnSwap $1 && exit 0 || echo failed to turn on swap for $1 && exit 1"
-                    - ""
-                    - ""
+              source: https://cf-templates-scripts.s3.amazonaws.com/swapOn.sh
 
+            "/var/tmp/waitForFormat.sh":
+              owner: root
+              group: root
+              mode: 755
+              source: https://cf-templates-scripts.s3.amazonaws.com/waitForFormat.sh
 
         swapOnSdb:
           commands:
@@ -188,13 +167,13 @@ Resources:
         configSets:
           classicLvm:
             - packagesInstall
-            - partition
+            - diskScripts
             - lvmconfig
             - format
             - paths
             - mount
           ephemeralSwapOn:
-            - swapScript
+            - diskScripts
             - swapOnSdb
             - Fn::If:
                 - has1ephemeral
@@ -218,11 +197,6 @@ Resources:
       KeyName: !Ref KeyName
       ImageId: !Ref ImageId
       InstanceType: !Ref InstanceType
-      # Volumes:
-      #   - VolumeId: !Ref ebsDisk1
-      #     Device: /dev/xvdz
-      #   - VolumeId: !Ref ebsHanaShared
-      #     Device: /dev/xvdx
       AvailabilityZone: !Ref AZ
       UserData:
         Fn::Base64:
@@ -297,27 +271,6 @@ Resources:
           Value: Demo
       VolumeType: standard
 
-  ebsHanaShared:
-    Type: AWS::EC2::Volume
-    Properties:
-      AvailabilityZone:
-        Fn::GetAtt:
-          - ec2Hana
-          - AvailabilityZone
-      AutoEnableIO: False
-      Encrypted: False
-      Size:
-        Fn::FindInMap:
-          - TypeToCapacity
-          - !Ref InstanceType
-          - RAM
-      Tags:
-        - Key: Name
-          Value: hana_shared
-        - Key: Usage
-          Value: hana_shared
-      VolumeType: gp2
-
   ebsHanaData:
     Type: AWS::EC2::Volume
     Properties:
@@ -376,14 +329,12 @@ Outputs:
     Description: >-
       Instance ID
     Value: !Ref ec2Hana
-  HanaShared:
-    Description: >-
-      Disk2 ID
-    Value: !Ref ebsHanaShared
+
   HanaData:
     Description: >-
       Disk2 ID
     Value: !Ref ebsHanaData
+
   HanaLog:
     Description: >-
       Disk2 ID

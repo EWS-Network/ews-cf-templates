@@ -19,13 +19,20 @@ Parameters:
     Type: String
     Default: "Test"
 
-  AZ:
-    Type: "AWS::EC2::AvailabilityZone::Name"
-    Default: "eu-west-1a"
+  InstanceType:
+    Type: String
+    Default: r3.2xlarge
     AllowedValues:
-      - "eu-west-1a"
-      - "eu-west-1b"
-      - "eu-west-1c"
+      - x1.16xlarge
+      - x1.32xlarge
+      - r3.2xlarge
+      - r3.4xlarge
+      - r3.8xlarge
+
+  HanaShared:
+    Description: >-
+      HANA Shared location
+    Type: "String"
 
   NTPServer:
     Type: String
@@ -36,16 +43,6 @@ Parameters:
     - "Prod"
     - "Dev"
     Default: "Dev"
-
-  InstanceType:
-    Type: String
-    Default: r3.2xlarge
-    AllowedValues:
-      - x1.16xlarge
-      - x1.32xlarge
-      - r3.2xlarge
-      - r3.4xlarge
-      - r3.8xlarge
 
 Conditions:
   has1ephemeral:
@@ -72,6 +69,15 @@ Conditions:
           - !Ref InstanceType
           - "m3.large"
 
+  use512GLog:
+    Fn::Or:
+      - Fn::Equals:
+          - !Ref InstanceType
+          - "x1.16xlarge"
+      - Fn::Equals:
+          - !Ref InstanceType
+          - "x1.32xlarge"
+
 Mappings:
   TypeToCapacity:
     r3.2xlarge:
@@ -89,6 +95,20 @@ Mappings:
     x1.32xlarge:
       RAM: 2048
       CPU-C-Enabled: True
+
+  sapPaths:
+    data:
+      path: /hana/data
+      fsType: xfs
+      fsFormatOptions:
+      pathMountOptions: relatime,inode64
+
+    log:
+      path: /hana/log
+      fsType: xfs
+      fsFormatOptions:
+      pathMountOptions: relatime,inode64,nobarrier
+
 
 Resources:
   ec2Hana:
@@ -122,15 +142,34 @@ Resources:
               command: "vgcreate vg01 /dev/xvdz1 /dev/xvdx1"
             0004-lvcreate-data:
               command: "lvcreate vg01 -n data -l50%FREE -i 2 -I64"
+
         format:
           commands:
             0001-format-data:
               command: "mkfs.xfs -f /dev/mapper/vg01-data"
+
         paths:
           commands:
             0001-create-data-dir:
-              command: "mkdir -p /var/lib/data"
-              test: "if ! [ -d /var/lib/data ]; then exit 0; else exit 1; fi"
+              command:
+                Fn::Join:
+                  - " "
+                  - - "mkdir -p "
+                    - Fn::FindInMap:
+                        - sapPaths
+                        - data
+                        - path
+
+            0002-create-log-dir:
+              command:
+                Fn::Join:
+                  - " "
+                  - - "mkdir -p "
+                    - Fn::FindInMap:
+                        - sapPaths
+                        - log
+                        - path
+
         mount:
           commands:
             0001-add-data-to-fstab:
@@ -184,7 +223,7 @@ Resources:
             - ConfigSet: classicLvm
 
     Properties:
-      EbsOptimized: False
+      EbsOptimized: True
       BlockDeviceMappings:
         Fn::If:
           - has1ephemeral
@@ -197,7 +236,6 @@ Resources:
       KeyName: !Ref KeyName
       ImageId: !Ref ImageId
       InstanceType: !Ref InstanceType
-      AvailabilityZone: !Ref AZ
       UserData:
         Fn::Base64:
           Fn::Join:
@@ -254,23 +292,6 @@ Resources:
                   - "|| error_exit \"Failed to initialize the resource\""
             - ""
 
-  ebsDisk1:
-    Type: AWS::EC2::Volume
-    Properties:
-      AvailabilityZone:
-        Fn::GetAtt:
-          - ec2Hana
-          - AvailabilityZone
-      AutoEnableIO: False
-      Encrypted: False
-      Size: 10
-      Tags:
-        - Key: Name
-          Value: Disk1
-        - Key: Usage
-          Value: Demo
-      VolumeType: standard
-
   ebsHanaData:
     Type: AWS::EC2::Volume
     Properties:
@@ -302,17 +323,19 @@ Resources:
       AutoEnableIO: False
       Encrypted: False
       Size:
-        Fn::FindInMap:
-          - TypeToCapacity
-          - !Ref InstanceType
-          - RAM
+        Fn::If:
+          - use512GLog:
+          - 512
+          - Fn::FindInMap:
+              - TypeToCapacity
+              - !Ref InstanceType
+              - RAM
       Tags:
         - Key: Name
           Value: hana_log
         - Key: Usage
           Value: hana_log
       VolumeType: gp2
-
 
   WHInstanceInit:
     Type: "AWS::CloudFormation::WaitConditionHandle"

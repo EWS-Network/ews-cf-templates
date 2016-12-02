@@ -32,7 +32,7 @@ Parameters:
   HanaShared:
     Description: >-
       HANA Shared location
-    Type: "String"
+    Type: String
 
   NTPServer:
     Type: String
@@ -63,11 +63,16 @@ Conditions:
           - !Ref InstanceType
           - "x1.16xlarge"
       - Fn::Equals:
-          - !Ref InstanceType
-          - "m3.medium"
+         - !Ref InstanceType
+         - "m3.medium"
       - Fn::Equals:
           - !Ref InstanceType
           - "m3.large"
+
+  isNotEBSOptimized:
+    Fn::Equals:
+      - !Ref InstanceType
+      - "r3.8xlarge"
 
   use512GLog:
     Fn::Or:
@@ -78,35 +83,44 @@ Conditions:
           - !Ref InstanceType
           - "x1.32xlarge"
 
+  remoteHanaShared:
+    Fn::Equals:
+      - !Ref HanaShared
+      - ""
+
 Mappings:
   TypeToCapacity:
     r3.2xlarge:
       RAM: 64
-      CPU-C-Enabled: False
+      CpuCEnabled: False
     r3.4xlarge:
       RAM: 128
-      CPU-C-Enabled: False
+      CpuCEnabled: False
     r3.8xlarge:
       RAM: 256
-      CPU-C-Enabled: False
+      CpuCEnabled: False
     x1.16xlarge:
       RAM: 1024
-      CPU-C-Enabled: True
+      CpuCEnabled: True
     x1.32xlarge:
       RAM: 2048
-      CPU-C-Enabled: True
+      CpuCEnabled: True
 
   sapPaths:
     data:
       path: /hana/data
+      ebsDevice: xvdj
+      ebsAttachDevice: /dev/sdj
       fsType: xfs
-      fsFormatOptions:
+      fsFormatOptions: ""
       pathMountOptions: relatime,inode64
 
     log:
       path: /hana/log
+      ebsDevice: xvdk
+      ebsAttachDevice: /dev/sdk
       fsType: xfs
-      fsFormatOptions:
+      fsFormatOptions: ""
       pathMountOptions: relatime,inode64,nobarrier
 
 
@@ -116,37 +130,7 @@ Resources:
     Metadata:
       AWS::CloudFormation::Init:
 
-        packagesInstall:
-          packages:
-            yum:
-              lvm2: []
-              parted: []
-              xfsprogs: []
-
-        partitionDisks:
-          commands:
-            0001-part-disk1:
-              command: "bash /var/tmp/waitForFormat.sh xvdz"
-            0002-part-disk2:
-              command: "bash /var/tmp/waitForFormat.sh xvdz"
-            0003-set-lvm-flag:
-              command: "parted -s -- /dev/xvdz set 1 lvm on ; parted -s -- /dev/xvdx set 1 lvm on"
-
-        lvmconfig:
-          commands:
-            0001-pv-disk1:
-              command: "pvcreate /dev/xvdz1"
-            0002-pv-disk2:
-              command: "pvcreate /dev/xvdx1"
-            0003-vgcreate-vg01:
-              command: "vgcreate vg01 /dev/xvdz1 /dev/xvdx1"
-            0004-lvcreate-data:
-              command: "lvcreate vg01 -n data -l50%FREE -i 2 -I64"
-
-        format:
-          commands:
-            0001-format-data:
-              command: "mkfs.xfs -f /dev/mapper/vg01-data"
+        ####################################################
 
         paths:
           commands:
@@ -154,7 +138,7 @@ Resources:
               command:
                 Fn::Join:
                   - " "
-                  - - "mkdir -p "
+                  - - "mkdir -p"
                     - Fn::FindInMap:
                         - sapPaths
                         - data
@@ -164,18 +148,102 @@ Resources:
               command:
                 Fn::Join:
                   - " "
-                  - - "mkdir -p "
+                  - - "mkdir -p"
                     - Fn::FindInMap:
                         - sapPaths
                         - log
                         - path
 
+        ####################################################
+
+        format:
+          packages:
+            yum:
+              xfsprogs: []
+          commands:
+            0001-format-data:
+              command:
+                Fn::Join:
+                  - " "
+                  - - "mkfs.xfs -f"
+                    - Fn::Join:
+                        - ""
+                        - - "/dev/mapper/"
+                          - Fn::Join:
+                              - "-"
+                              - - "vgData"
+                                - "hana"
+
+            0002-format-logs:
+              command:
+                Fn::Join:
+                  - " "
+                  - - "mkfs.xfs -f"
+                    - Fn::Join:
+                        - ""
+                        - - "/dev/mapper/"
+                          - Fn::Join:
+                              - "-"
+                              - - "vgLog"
+                                - "hana"
+
+        ####################################################
+
         mount:
           commands:
             0001-add-data-to-fstab:
-              command: "echo /dev/mapper/vg01-data /var/lib/data xfs defaults 0 0 >> /etc/fstab"
-            0002-mount-all:
+              command:
+                Fn::Join:
+                  - " "
+                  - - "echo"
+                    - Fn::Join:
+                        - ""
+                        - - "/dev/mapper/"
+                          - Fn::Join:
+                              - "-"
+                              - - "vgData"
+                                - "hana"
+
+                    - Fn::FindInMap:
+                        - sapPaths
+                        - data
+                        - path
+                    - "xfs"
+                    - Fn::FindInMap:
+                        - sapPaths
+                        - data
+                        - pathMountOptions
+                    - "0 0 >> /etc/fstab"
+
+            0002-add-log-to-fstab:
+              command:
+                Fn::Join:
+                  - " "
+                  - - "echo"
+                    - Fn::Join:
+                        - ""
+                        - - "/dev/mapper/"
+                          - Fn::Join:
+                              - "-"
+                              - - "vgLog"
+                                - "hana"
+
+                    - Fn::FindInMap:
+                        - sapPaths
+                        - log
+                        - path
+                    - "xfs"
+                    - Fn::FindInMap:
+                        - sapPaths
+                        - log
+                        - pathMountOptions
+                    - "0 0 >> /etc/fstab"
+
+
+            0003-mount-all:
               command: "mount -a"
+
+        ####################################################
 
         disksScripts:
           files:
@@ -191,28 +259,126 @@ Resources:
               mode: 755
               source: https://cf-templates-scripts.s3.amazonaws.com/waitForFormat.sh
 
+            "/var/tmp/easyLv.sh":
+              owner: root
+              group: root
+              mode: 755
+              source: https://cf-templates-scripts.s3.amazonaws.com/easy_lv_creator.sh
+
+        ####################################################
+
+        partitionDisks:
+          packages:
+            yum:
+              parted: []
+          commands:
+            0001-part-hana-data:
+              command:
+                Fn::Join:
+                  - " "
+                  - - "/bin/bash /var/tmp/waitForFormat.sh"
+                    - Fn::FindInMap:
+                        - sapPaths
+                        - data
+                        - ebsDevice
+
+            0002-part-hana-log:
+              command:
+                Fn::Join:
+                  - " "
+                  - - "/bin/bash /var/tmp/waitForFormat.sh"
+                    - Fn::FindInMap:
+                        - sapPaths
+                        - log
+                        - ebsDevice
+
+        ####################################################
+
+        lvmConfig:
+          packages:
+            yum:
+              lvm2: []
+
+          commands:
+            0001-hana-data:
+              command:
+                Fn::Join:
+                  - " "
+                  - - "/bin/bash /var/tmp/easyLv.sh"
+                    - "-d"
+                    - Fn::FindInMap:
+                        - sapPaths
+                        - data
+                        - ebsDevice
+                    - "-v"
+                    - "vgData"
+                    - "-l"
+                    - "hana"
+
+            0002-hana-log:
+              command:
+                Fn::Join:
+                  - " "
+                  - - "/bin/bash /var/tmp/easyLv.sh"
+                    - "-d"
+                    - Fn::FindInMap:
+                        - sapPaths
+                        - log
+                        - ebsDevice
+                    - "-v"
+                    - "vgLog"
+                    - "-l"
+                    - "hana"
+
+
+        ####################################################
+
         swapOnSdb:
           commands:
             0001-partition-sdb:
               command: "/bin/bash /var/tmp/swapOn.sh xvdb"
               ignoreErrors: True
+            0002-xvdb-remove-from-fstab:
+              command: "sed -i '/xvdb/d' /etc/fstab"
+
+        ####################################################
 
         swapOnSdc:
           commands:
             0001-partition-sdc:
               command: "/bin/bash /var/tmp/swapOn.sh xvdc"
               ignoreErrors: True
+            0002-xvdc-remove-from-fstab:
+              command: "sed -i '/xvdc/d' /etc/fstab"
+
+
+        ####################################################
+        #
+        # ConfigSets nesting
+        #
+
+        # Available Sets:
+        # - format
+        # - paths
+        # - mount
+        # - disksScripts
+        # - packagesInstall
+        # - partitionDisks
+        # - lvmConfig
+        # - swapOnSdb
+        # - swapOnSdc
+        # -
 
         configSets:
-          classicLvm:
-            - packagesInstall
-            - diskScripts
-            - lvmconfig
+          lvmHana:
+            - disksScripts
+            - partitionDisks
+            - lvmConfig
             - format
             - paths
             - mount
           ephemeralSwapOn:
-            - diskScripts
+            - disksScripts
             - swapOnSdb
             - Fn::If:
                 - has1ephemeral
@@ -220,10 +386,14 @@ Resources:
                 - swapOnSdc
           default:
             - ConfigSet: ephemeralSwapOn
-            - ConfigSet: classicLvm
+            - ConfigSet: lvmHana
 
     Properties:
-      EbsOptimized: True
+      EbsOptimized:
+        Fn::If:
+          - isNotEBSOptimized
+          - False
+          - True
       BlockDeviceMappings:
         Fn::If:
           - has1ephemeral
@@ -324,7 +494,7 @@ Resources:
       Encrypted: False
       Size:
         Fn::If:
-          - use512GLog:
+          - use512GLog
           - 512
           - Fn::FindInMap:
               - TypeToCapacity
@@ -337,14 +507,36 @@ Resources:
           Value: hana_log
       VolumeType: gp2
 
+  ebsAttachHanaData:
+    Type: AWS::EC2::VolumeAttachment
+    Properties:
+      Device:
+        Fn::FindInMap:
+          - sapPaths
+          - data
+          - ebsAttachDevice
+      InstanceId: !Ref ec2Hana
+      VolumeId: !Ref ebsHanaData
+
+  ebsAttachHanaLog:
+    Type: AWS::EC2::VolumeAttachment
+    Properties:
+      Device:
+        Fn::FindInMap:
+          - sapPaths
+          - log
+          - ebsAttachDevice
+      InstanceId: !Ref ec2Hana
+      VolumeId: !Ref ebsHanaLog
+
   WHInstanceInit:
     Type: "AWS::CloudFormation::WaitConditionHandle"
 
-  WCInstanceInit:
-    Type: "AWS::CloudFormation::WaitCondition"
-    Properties:
-      Handle: !Ref WHInstanceInit
-      Timeout: "1800"
+  # WCInstanceInit:
+  #   Type: "AWS::CloudFormation::WaitCondition"
+  #   Properties:
+  #     Handle: !Ref WHInstanceInit
+  #     Timeout: "1800"
 
 
 Outputs:

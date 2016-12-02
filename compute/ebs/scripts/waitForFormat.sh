@@ -12,11 +12,12 @@ case "$2" in
 	LABEL=msdos
 	;;
     *)
+	LABEL=gpt
 	;;
 esac
 
 while true; do
-    if [ `fdisk -l | grep $1 | wc -l` -gt 0 ]; then
+    if [ `fdisk -l /dev/$1 | wc -l 2>/dev/null` -gt 0 ]; then
 	parted -a optimal -s -- /dev/$1 mklabel $LABEL mkpart primary 0% 100%;
 	exit 0
     fi

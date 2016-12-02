@@ -357,18 +357,6 @@ Resources:
         # ConfigSets nesting
         #
 
-        # Available Sets:
-        # - format
-        # - paths
-        # - mount
-        # - disksScripts
-        # - packagesInstall
-        # - partitionDisks
-        # - lvmConfig
-        # - swapOnSdb
-        # - swapOnSdc
-        # -
-
         configSets:
           lvmHana:
             - disksScripts
@@ -532,11 +520,11 @@ Resources:
   WHInstanceInit:
     Type: "AWS::CloudFormation::WaitConditionHandle"
 
-  # WCInstanceInit:
-  #   Type: "AWS::CloudFormation::WaitCondition"
-  #   Properties:
-  #     Handle: !Ref WHInstanceInit
-  #     Timeout: "1800"
+  WCInstanceInit:
+    Type: "AWS::CloudFormation::WaitCondition"
+    Properties:
+      Handle: !Ref WHInstanceInit
+      Timeout: "1800"
 
 
 Outputs:

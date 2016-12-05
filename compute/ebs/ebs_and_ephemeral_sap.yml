@@ -44,6 +44,21 @@ Parameters:
     - "Dev"
     Default: "Dev"
 
+
+  EncryptDisks:
+    Description: >-
+      Turn on EBS disks encryption
+    Type: String
+    AllowedValues:
+      - False
+      - True
+
+  KMSKeyId:
+    Decription: >-
+      ID of the KMS key to encrypt the disks
+    Type: String
+
+
 Conditions:
   has1ephemeral:
     Fn::Or:
@@ -458,7 +473,7 @@ Resources:
           - ec2Hana
           - AvailabilityZone
       AutoEnableIO: False
-      Encrypted: False
+      Encrypted: !Ref EncryptDisks
       Size:
         Fn::FindInMap:
           - TypeToCapacity
@@ -479,7 +494,7 @@ Resources:
           - ec2Hana
           - AvailabilityZone
       AutoEnableIO: False
-      Encrypted: False
+      Encrypted: !Ref EncryptDisks
       Size:
         Fn::If:
           - use512GLog

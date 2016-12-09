@@ -54,7 +54,7 @@ Parameters:
       - True
 
   KMSKeyId:
-    Decription: >-
+    Description: >-
       ID of the KMS key to encrypt the disks
     Type: String
 

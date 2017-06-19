@@ -12,9 +12,39 @@ Parameters:
   Environment:
     Type: String
     Description: >-
-      Nom d'environement
+      VPC name
+    AllowedValues:
+      - prod
+      - dev
+      - test
+      - staging
+
+
+################################################################################
+#
+# Resources
+#
 
 Resources:
+
+  ##############################################################################
+  #
+  # GET all the Subnets CIDR
+  #
+
+  lambdaGetSubnetsCidr:
+    Type: AWS::CloudFormation::CustomResource
+    Version: '1.0'
+    Properties:
+      ServiceToken: !Sub 'arn:aws:lambda:eu-west-1:${AWS::AccountId}:function:getSubnetsCidr'
+      CIDR: !Ref CIDR
+
+
+  ##############################################################################
+  #
+  # VPC
+  #
+
   rootVpc:
     Type: AWS::EC2::VPC
     Properties:
@@ -22,30 +52,289 @@ Resources:
       EnableDnsSupport: True
       EnableDnsHostnames: True
       Tags:
-        - Key: "Name"
-          Value:
-            Fn::Join:
-              - "-"
-              - - "VPC"
-                - !Ref Environement
-        - Key: "Env"
-          Value: !Ref Environement
+        - Key: Name
+          Value: !Ref Environment
+        - Key: VPCName
+          Value: !Ref Environment
+
+
+  ##############################################################################
+  #
+  # PUBLIC SUBNETS
+  #
 
   publicSubnetA:
     Type: "AWS::EC2::Subnet"
     Properties:
-      AvailabilityZone:
-        Fn::Join:
-          - ""
-          - - !Ref AWS::Region
-            - "a"
-      CidrBlock: String
-      MapPublicIpOnLaunch: Boolean
+      AvailabilityZone: !Sub '${AWS::Region}a'
+      CidrBlock: !Select [ 0, !GetAtt [ lambdaGetSubnetsCidr , 'PublicSubnets']]
+      MapPublicIpOnLaunch: True
       Tags:
-        Resource Tag
+        - Key: Name
+          Value: PublicSubnetA
+        - Key: Layer
+          Value: Public
+        - Key: VPCName
+          Value: !Ref Environment
       VpcId: !Ref rootVpc
 
+  publicSubnetB:
+    Type: "AWS::EC2::Subnet"
+    Properties:
+      AvailabilityZone: !Sub '${AWS::Region}b'
+      CidrBlock: !Select [ 1, !GetAtt [ lambdaGetSubnetsCidr , 'PublicSubnets']]
+      MapPublicIpOnLaunch: True
+      Tags:
+        - Key: Name
+          Value: PublicSubnetB
+        - Key: Layer
+          Value: Public
+        - Key: VPCName
+          Value: !Ref Environment
+      VpcId: !Ref rootVpc
+
+  publicSubnetC:
+    Type: "AWS::EC2::Subnet"
+    Properties:
+      AvailabilityZone: !Sub '${AWS::Region}c'
+      CidrBlock: !Select [ 2, !GetAtt [ lambdaGetSubnetsCidr , 'PublicSubnets']]
+      MapPublicIpOnLaunch: True
+      Tags:
+        - Key: Name
+          Value: PublicSubnetC
+        - Key: Layer
+          Value: Public
+        - Key: VPCName
+          Value: !Ref Environment
+      VpcId: !Ref rootVpc
+
+  ##############################################################################
+  #
+  # APP SUBNETS
+  #
+
+  appSubnetA:
+    Type: "AWS::EC2::Subnet"
+    Properties:
+      AvailabilityZone: !Sub '${AWS::Region}a'
+      CidrBlock: !Select [ 0, !GetAtt [ lambdaGetSubnetsCidr , 'AppSubnets']]
+      MapPublicIpOnLaunch: True
+      Tags:
+        - Key: Name
+          Value: AppSubnetA
+        - Key: Layer
+          Value: App
+        - Key: VPCName
+          Value: !Ref Environment
+      VpcId: !Ref rootVpc
+
+  appSubnetB:
+    Type: "AWS::EC2::Subnet"
+    Properties:
+      AvailabilityZone: !Sub '${AWS::Region}b'
+      CidrBlock: !Select [ 1, !GetAtt [ lambdaGetSubnetsCidr , 'AppSubnets']]
+      MapPublicIpOnLaunch: True
+      Tags:
+        - Key: Name
+          Value: AppSubnetB
+        - Key: Layer
+          Value: App
+        - Key: VPCName
+          Value: !Ref Environment
+      VpcId: !Ref rootVpc
+
+  appSubnetC:
+    Type: "AWS::EC2::Subnet"
+    Properties:
+      AvailabilityZone: !Sub '${AWS::Region}c'
+      CidrBlock: !Select [ 2, !GetAtt [ lambdaGetSubnetsCidr , 'AppSubnets']]
+      MapPublicIpOnLaunch: True
+      Tags:
+        - Key: Name
+          Value: AppSubnetC
+        - Key: Layer
+          Value: App
+        - Key: VPCName
+          Value: !Ref Environment
+      VpcId: !Ref rootVpc
+
+  ##############################################################################
+  #
+  # STORAGE SUBNETS
+  #
+
+  storageSubnetA:
+    Type: "AWS::EC2::Subnet"
+    Properties:
+      AvailabilityZone: !Sub '${AWS::Region}a'
+      CidrBlock: !Select [ 0, !GetAtt [ lambdaGetSubnetsCidr , 'DBSubnets']]
+      MapPublicIpOnLaunch: True
+      Tags:
+        - Key: Name
+          Value: StorageSubnetA
+        - Key: Layer
+          Value: Storage
+        - Key: VPCName
+          Value: !Ref Environment
+      VpcId: !Ref rootVpc
+
+  storageSubnetB:
+    Type: "AWS::EC2::Subnet"
+    Properties:
+      AvailabilityZone: !Sub '${AWS::Region}b'
+      CidrBlock: !Select [ 1, !GetAtt [ lambdaGetSubnetsCidr , 'DBSubnets']]
+      MapPublicIpOnLaunch: True
+      Tags:
+        - Key: Name
+          Value: StorageSubnetB
+        - Key: Layer
+          Value: Storage
+        - Key: VPCName
+          Value: !Ref Environment
+
+      VpcId: !Ref rootVpc
+
+  storageSubnetC:
+    Type: "AWS::EC2::Subnet"
+    Properties:
+      AvailabilityZone: !Sub '${AWS::Region}c'
+      CidrBlock: !Select [ 2, !GetAtt [ lambdaGetSubnetsCidr , 'DBSubnets']]
+      MapPublicIpOnLaunch: True
+      Tags:
+        - Key: Name
+          Value: StorageSubnetC
+        - Key: Layer
+          Value: Storage
+        - Key: VPCName
+          Value: !Ref Environment
+
+      VpcId: !Ref rootVpc
+
+  ##############################################################################
+  #
+  # INTERNET GATEWAY
+  #
+
+  internetGateway:
+    Type: "AWS::EC2::InternetGateway"
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Sub '${Environment}-igw'
+        - Key: VPCName
+          Value: !Ref Environment
+
+  internetGatewayAttach:
+    Type: "AWS::EC2::VPCGatewayAttachment"
+    Properties:
+      InternetGatewayId: !Ref internetGateway
+      VpcId: !Ref rootVpc
+
+  ##############################################################################
+  #
+  # APP NAT GATEWAY
+  #
+
+  appNatGatewayEip:
+    Type: "AWS::EC2::EIP"
+    Properties:
+      Domain: vpc
+
+  appNatGatewayA:
+    Type: "AWS::EC2::NatGateway"
+    Properties:
+      AllocationId: !GetAtt [ appNatGatewayEip, 'AllocationId' ]
+      SubnetId: !Ref publicSubnetA
+
+
+  ##############################################################################
+  #
+  # ROUTE TABLES
+  #
+
+  publicSubnetsRtb:
+    Type: "AWS::EC2::RouteTable"
+    Properties:
+      VpcId: !Ref rootVpc
+      Tags:
+        - Key: Name
+          Value: Public-rtb
+        - Key: VPCName
+          Value: !Ref Environment
+
+  appSubnetsRtb:
+    Type: "AWS::EC2::RouteTable"
+    Properties:
+      VpcId: !Ref rootVpc
+      Tags:
+        - Key: Name
+          Value: App-rtb
+        - Key: VPCName
+          Value: !Ref Environment
+
+  storageSubnetsRtb:
+    Type: "AWS::EC2::RouteTable"
+    Properties:
+      VpcId: !Ref rootVpc
+      Tags:
+        - Key: Name
+          Value: Storage-rtb
+        - Key: VPCName
+          Value: !Ref Environment
+
+  ##############################################################################
+  #
+  # ROUTES
+  #
+
+  publicSubnetsDefaultRoute:
+    Type: "AWS::EC2::Route"
+    Properties:
+      DestinationCidrBlock: '0.0.0.0/0'
+      GatewayId: !Ref internetGateway
+      RouteTableId: !Ref publicSubnetsRtb
+
+  appSubnetsDefaultRoute:
+    Type: "AWS::EC2::Route"
+    Properties:
+      DestinationCidrBlock: '0.0.0.0/0'
+      NatGatewayId: !Ref appNatGatewayA
+      RouteTableId: !Ref appSubnetsRtb
+
+  ##############################################################################
+  #
+  # VPC Peering
+  #
+
+  s3Endpoint:
+    Type: "AWS::EC2::VPCEndpoint"
+    Properties:
+      PolicyDocument: {
+        "Version":"2012-10-17",
+        "Statement":[{
+        "Effect":"Allow",
+        "Principal": "*",
+        "Action":["s3:GetObject"],
+        "Resource":["*"]
+        }]
+        }
+      RouteTableIds:
+        - !Ref appSubnetsRtb
+      ServiceName: !Sub 'com.amazonaws.${AWS::Region}.s3'
+      VpcId: !Ref rootVpc
+
+
+################################################################################
+#
+# Ouputs
+#
+
+
 Outputs:
-  ASG:
-    Description: AutoScaling Group
-    Value: !Ref asgTest
+
+  vpcId:
+    Value: !Ref rootVpc
+
+  s3EndpointId:
+    Value: !Ref s3Endpoint
+

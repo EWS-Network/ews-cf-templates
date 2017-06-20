@@ -118,7 +118,7 @@ Resources:
     Properties:
       AvailabilityZone: !Sub '${AWS::Region}a'
       CidrBlock: !Select [ 0, !GetAtt [ lambdaGetSubnetsCidr , 'AppSubnets']]
-      MapPublicIpOnLaunch: True
+      MapPublicIpOnLaunch: False
       Tags:
         - Key: Name
           Value: AppSubnetA
@@ -133,7 +133,7 @@ Resources:
     Properties:
       AvailabilityZone: !Sub '${AWS::Region}b'
       CidrBlock: !Select [ 1, !GetAtt [ lambdaGetSubnetsCidr , 'AppSubnets']]
-      MapPublicIpOnLaunch: True
+      MapPublicIpOnLaunch: False
       Tags:
         - Key: Name
           Value: AppSubnetB
@@ -148,7 +148,7 @@ Resources:
     Properties:
       AvailabilityZone: !Sub '${AWS::Region}c'
       CidrBlock: !Select [ 2, !GetAtt [ lambdaGetSubnetsCidr , 'AppSubnets']]
-      MapPublicIpOnLaunch: True
+      MapPublicIpOnLaunch: False
       Tags:
         - Key: Name
           Value: AppSubnetC
@@ -168,7 +168,7 @@ Resources:
     Properties:
       AvailabilityZone: !Sub '${AWS::Region}a'
       CidrBlock: !Select [ 0, !GetAtt [ lambdaGetSubnetsCidr , 'DBSubnets']]
-      MapPublicIpOnLaunch: True
+      MapPublicIpOnLaunch: False
       Tags:
         - Key: Name
           Value: StorageSubnetA
@@ -183,7 +183,7 @@ Resources:
     Properties:
       AvailabilityZone: !Sub '${AWS::Region}b'
       CidrBlock: !Select [ 1, !GetAtt [ lambdaGetSubnetsCidr , 'DBSubnets']]
-      MapPublicIpOnLaunch: True
+      MapPublicIpOnLaunch: False
       Tags:
         - Key: Name
           Value: StorageSubnetB
@@ -199,7 +199,7 @@ Resources:
     Properties:
       AvailabilityZone: !Sub '${AWS::Region}c'
       CidrBlock: !Select [ 2, !GetAtt [ lambdaGetSubnetsCidr , 'DBSubnets']]
-      MapPublicIpOnLaunch: True
+      MapPublicIpOnLaunch: False
       Tags:
         - Key: Name
           Value: StorageSubnetC

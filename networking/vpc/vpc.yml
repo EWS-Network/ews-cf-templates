@@ -262,6 +262,7 @@ Resources:
         - Key: VPCName
           Value: !Ref Environment
 
+
   appSubnetsRtb:
     Type: "AWS::EC2::RouteTable"
     Properties:
@@ -272,6 +273,7 @@ Resources:
         - Key: VPCName
           Value: !Ref Environment
 
+
   storageSubnetsRtb:
     Type: "AWS::EC2::RouteTable"
     Properties:
@@ -281,6 +283,7 @@ Resources:
           Value: Storage-rtb
         - Key: VPCName
           Value: !Ref Environment
+
 
   ##############################################################################
   #
@@ -301,9 +304,10 @@ Resources:
       NatGatewayId: !Ref appNatGatewayA
       RouteTableId: !Ref appSubnetsRtb
 
+
   ##############################################################################
   #
-  # VPC Peering
+  # S3 Endpoint
   #
 
   s3Endpoint:

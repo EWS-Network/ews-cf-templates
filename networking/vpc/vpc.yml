@@ -328,6 +328,66 @@ Resources:
       VpcId: !Ref rootVpc
 
 
+  ##############################################################################
+  #
+  # Subnets association
+  #
+
+  publicSubnetAssociationA:
+    Type: "AWS::EC2::SubnetRouteTableAssociation"
+    Properties:
+      RouteTableId: !Ref publicSubnetsRtb
+      SubnetId: !Ref publicSubnetA
+
+  publicSubnetAssociationB:
+    Type: "AWS::EC2::SubnetRouteTableAssociation"
+    Properties:
+      RouteTableId: !Ref publicSubnetsRtb
+      SubnetId: !Ref publicSubnetB
+
+  publicSubnetAssociationC:
+    Type: "AWS::EC2::SubnetRouteTableAssociation"
+    Properties:
+      RouteTableId: !Ref publicSubnetsRtb
+      SubnetId: !Ref publicSubnetC
+
+  appSubnetAssociationA:
+    Type: "AWS::EC2::SubnetRouteTableAssociation"
+    Properties:
+      RouteTableId: !Ref appSubnetsRtb
+      SubnetId: !Ref appSubnetA
+
+  appSubnetAssociationB:
+    Type: "AWS::EC2::SubnetRouteTableAssociation"
+    Properties:
+      RouteTableId: !Ref appSubnetsRtb
+      SubnetId: !Ref appSubnetB
+
+  appSubnetAssociationC:
+    Type: "AWS::EC2::SubnetRouteTableAssociation"
+    Properties:
+      RouteTableId: !Ref appSubnetsRtb
+      SubnetId: !Ref appSubnetC
+
+  storageSubnetAssociationA:
+    Type: "AWS::EC2::SubnetRouteTableAssociation"
+    Properties:
+      RouteTableId: !Ref storageSubnetsRtb
+      SubnetId: !Ref storageSubnetA
+
+  storageSubnetAssociationB:
+    Type: "AWS::EC2::SubnetRouteTableAssociation"
+    Properties:
+      RouteTableId: !Ref storageSubnetsRtb
+      SubnetId: !Ref storageSubnetB
+
+  storageSubnetAssociationC:
+    Type: "AWS::EC2::SubnetRouteTableAssociation"
+    Properties:
+      RouteTableId: !Ref storageSubnetsRtb
+      SubnetId: !Ref storageSubnetC
+
+
 ################################################################################
 #
 # Ouputs

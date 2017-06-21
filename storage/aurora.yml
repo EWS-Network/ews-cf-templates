@@ -79,6 +79,12 @@ Conditions:
 # MAPPINGS
 #
 
+Mappings:
+  DynDbTables:
+    master:
+      name: rdsmaster
+    apps:
+      name: rdsapps
 
 
 ################################################################################
@@ -118,7 +124,7 @@ Resources:
       ServiceToken: !Sub 'arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:setRdsMasterCreds'
       KeyId: !GetAtt [ lambdaGetKmsKeyId, 'KeyId' ]
       StackName: !Ref AWS::StackName
-      TableName: !Sub '${VPCName}rdsids'
+      TableName: !FindInMap [ DynDbTables, master, name ]
 
 
   lambdaGetRdsMasterCreds:
@@ -129,7 +135,7 @@ Resources:
     Properties:
       ServiceToken: !Sub 'arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:getRdsMasterCreds'
       StackName: !Ref AWS::StackName
-      TableName: !Sub '${VPCName}rdsids'
+      TableName: !FindInMap [ DynDbTables, master, name ]
 
   lambdaGetVpcId:
     Type: AWS::CloudFormation::CustomResource

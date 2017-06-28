@@ -313,15 +313,12 @@ Resources:
   s3Endpoint:
     Type: "AWS::EC2::VPCEndpoint"
     Properties:
-      PolicyDocument: {
-        "Version":"2012-10-17",
-        "Statement":[{
-        "Effect":"Allow",
-        "Principal": "*",
-        "Action":["s3:GetObject"],
-        "Resource":["*"]
-        }]
-        }
+      PolicyDocument:
+        Statement:
+          - Action: "*"
+            Effect: "Allow"
+            Resource: "*"
+            Principal: "*"
       RouteTableIds:
         - !Ref appSubnetsRtb
       ServiceName: !Sub 'com.amazonaws.${AWS::Region}.s3'

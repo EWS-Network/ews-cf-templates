@@ -15,7 +15,7 @@ Parameters:
       VPC name
     AllowedValues:
       - prod
-      - dev
+      - development
       - test
       - staging
 
@@ -385,6 +385,30 @@ Resources:
       SubnetId: !Ref storageSubnetC
 
 
+  ##############################################################################
+  #
+  # Default bastion SG
+  #
+
+
+  sgBastion:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: SG for App
+      SecurityGroupIngress:
+      - IpProtocol: tcp
+        FromPort: 22
+        ToPort: 22
+        CidrIp: 0.0.0.0/0
+      VpcId: !Ref rootVpc
+      Tags:
+        - Key: Name
+          Value: !Sub 'sg-${AWS::StackName}'
+        - Key: VPCName
+          Value: !Ref rootVpc
+
+
+
 ################################################################################
 #
 # Ouputs
@@ -399,3 +423,7 @@ Outputs:
   s3EndpointId:
     Value: !Ref s3Endpoint
 
+  vpcBastion:
+    Value: !GetAtt [ sgBastion, GroupId ]
+    Export:
+      Name: !Sub '${AWS::StackName}-sgGroupId'

@@ -184,6 +184,7 @@ Resources:
 
   rdsAuroraCluster:
     Type: "AWS::RDS::DBCluster"
+    DeletionPolicy: Snapshot
     DependsOn:
       - lambdaGetSubnets
       - lambdaGetVpcId
@@ -222,6 +223,7 @@ Resources:
 
   RDSDBInstanceA:
     Type: AWS::RDS::DBInstance
+    DeletionPolicy: Delete
     DependsOn:
       - rdsAuroraCluster
     Properties:
@@ -240,6 +242,7 @@ Resources:
 
   RDSDBInstanceB:
     Type: AWS::RDS::DBInstance
+    DeletionPolicy: Delete
     DependsOn:
       - rdsAuroraCluster
     Properties:
@@ -258,6 +261,7 @@ Resources:
 
   RDSDBInstanceC:
     Type: AWS::RDS::DBInstance
+    DeletionPolicy: Delete
     DependsOn:
       - rdsAuroraCluster
     Properties:
